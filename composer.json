@@ -1,0 +1,30 @@
+{
+    "name": "Bokbasen/php-sdk-auth",
+    "license": "MIT",
+    "type": "library",
+    "description": "PHP SDK for Bokbasen API authentication service",
+    "homepage": "https://github.com/Bokbasen/php-sdk-auth",
+    "autoload": {
+        "psr-4" : {
+            "Bokbasen\\Auth\\" : "src"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": { 
+            "Bokbasen\\Auth\\Tests\\" : "tests"
+        }
+    },
+     "authors": [
+        {
+            "name": "Ketil Stadskleiv",
+            "email": "ketil@bokbasen.no"
+        }
+    ],
+     "require": {
+        "php": ">=5.3",
+        "guzzlehttp/guzzle": "~6.1"    
+     },
+     "require-dev": {
+        "phpunit/phpunit": "5.2.*"
+    }
+}
