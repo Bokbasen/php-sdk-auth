@@ -7,19 +7,20 @@ class LoginTest extends \PHPUnit_Framework_TestCase
 {
 
     /**
-     * 
+     *
      * @var array
      */
     protected $config;
 
     /**
-     * 
+     *
      * @var \Bokbasen\Auth\Login
      */
     protected $auth;
 
-    public function setUp()
+    public function __construct($name = null, array $data = [], $dataName = '')
     {
+        parent::__construct($name, $data, $dataName);
         $this->config = parse_ini_file(__DIR__ . '/config.ini');
     }
 

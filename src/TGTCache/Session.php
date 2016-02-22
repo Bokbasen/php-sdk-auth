@@ -2,9 +2,10 @@
 namespace Bokbasen\Auth\TGTCache;
 
 /**
+ * Basic session cache class using the $_SESSION variable to cache TGT
  *
- * @author Ketil Stadskleiv <ketil@bokbasen.no>
- * @since Oct 6, 2015
+ *
+ * @license https://opensource.org/licenses/MIT
  */
 class Session implements TGTCacheInterface
 {

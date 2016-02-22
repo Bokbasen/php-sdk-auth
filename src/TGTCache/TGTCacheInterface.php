@@ -1,9 +1,9 @@
 <?php
 namespace Bokbasen\Auth\TGTCache;
 /**
- * 
- * @author Ketil Stadskleiv <ks@arkon.no>
- * @since Oct 6, 2015
+ * TGT Cache interface can be used to implement TGT caching with any kind of persistance mechanism 
+ *  
+ * @license https://opensource.org/licenses/MIT
  */
 interface TGTCacheInterface{
     

@@ -8,8 +8,6 @@ use Bokbasen\Auth\TGTCache\TGTCacheInterface;
  *
  * @link https://bokbasen.jira.com/wiki/display/api/Authentication+Service API Documentation
  * @license https://opensource.org/licenses/MIT
- *         
- * @author Ketil Stadskleiv <ketil@bokbasen.no>
  */
 class Login
 {
@@ -33,10 +31,11 @@ class Login
     protected $tgtCache;
 
     /**
+     * Number of minutes before a TGT should be refreshed
      *
      * @var int
      */
-    protected $tgtExpireMinutes = self::TGT_EXPIRE_TIME_MINUTES;
+    protected $tgtExpireMinutes = self::DEFAULT_TGT_EXPIRE_TIME_MINUTES;
 
     const URL_PROD = 'https://login.boknett.no/v1/tickets';
 
@@ -44,9 +43,7 @@ class Login
 
     const HEADER_TGT = 'Boknett-TGT';
 
-    const TGT_EXPIRE_TIME_MINUTES = 120;
-
-    const TGT_RENEW_MARGIN = 5;
+    const DEFAULT_TGT_EXPIRE_TIME_MINUTES = 115;
 
     /**
      *
@@ -80,10 +77,10 @@ class Login
      */
     public function getAuthHeadersAsArray()
     {
-        return array(
+        return [
             'Authorization' => 'Boknett ' . $this->tgt,
             'Date' => gmdate('D, d M Y H:i:s e')
-        );
+        ];
     }
 
     /**
@@ -113,16 +110,16 @@ class Login
      */
     protected function auth($username, $password)
     {
-        $this->httpClient = new \GuzzleHttp\Client(array(
+        $this->httpClient = new \GuzzleHttp\Client([
             'allow_redirects' => false
-        ));
+        ]);
         
-        $response = $this->httpClient->request('POST', $this->url, array(
-            'form_params' => array(
+        $response = $this->httpClient->request('POST', $this->url, [
+            'form_params' => [
                 'username' => $username,
                 'password' => $password
-            )
-        ));
+            ]
+        ]);
         
         if ($response->getStatusCode() != 201) {
             throw new \Exception('Ticket not created. HTTP: ' . $response->getStatusCode() . ' Body:' . $response->getBody());
@@ -142,13 +139,14 @@ class Login
      */
     public function isTGTSoonExpired(TGTCacheInterface $tgtCache = null)
     {
-        $dateTime = time() - ($this->tgtExpireMinutes - self::TGT_RENEW_MARGIN) * 60;
+        $dateTime = time() - $this->tgtExpireMinutes * 60;
         
         return $dateTime > $tgtCache->getCreatedUnixTimestamp();
     }
 
     /**
-     *
+     * Check if TGT is cached and if cache is valid, will set $this->tgt to cached value if true
+     * 
      * @param TGTCacheInterface $tgtCache            
      * @return bool
      */
@@ -157,16 +155,16 @@ class Login
         if (is_null($tgtCache) || empty($tgtCache->getTGT()) || $this->isTGTSoonExpired($tgtCache)) {
             return false;
         } else {
-            $this->tgt = $tgtCache->getTGT('tgt');
+            $this->tgt = $tgtCache->getTGT();            
+            return true;
         }
     }
 
     /**
-     * If no TGT cache is defined, then destruc will perform a HTTP DELETE call to clear the ticket
+     * If no TGT cache is defined, then destruct will perform a HTTP DELETE call to clear the ticket
      */
     public function __destruct()
     {
-        // If no cache is define, clean up key
         if (! empty($this->tgt) && empty($this->tgtCache)) {
             $this->logout();
             unset($this->tgt);

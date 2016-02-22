@@ -4,7 +4,7 @@
  
  The basic package enable creation of a TGT that can be used for further login to API services. The package also provides an interface for caching TGTs so one one can get a more effecient flow, only renewing TGT when needed. The API documenation is available on [this page](https://bokbasen.jira.com/wiki/display/api/Authentication+Service).
  
- ## Basic usage
+## Basic usage
  
  ```php
  <?php
