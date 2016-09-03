@@ -2,7 +2,23 @@
 namespace Bokbasen\Auth;
 
 use Bokbasen\Auth\TGTCache\TGTCacheInterface;
+use GuzzleHttp\RequestOptions;
+use Bokbasen\Auth\Exceptions\BokbasenAuthException;
 
+/**
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED.
+ * IN NO EVENT SHALL THE COPYRIGHT
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
 /**
  * Authentication class to use against Bokbasen's web services
  *
@@ -43,6 +59,10 @@ class Login
 
     const HEADER_TGT = 'Boknett-TGT';
 
+    const BEARER_NAME = 'Boknett';
+
+    const HTTP_HEADER_DATE_FORMAT = 'D, d M Y H:i:s e';
+
     const DEFAULT_TGT_EXPIRE_TIME_MINUTES = 115;
 
     /**
@@ -63,42 +83,19 @@ class Login
     }
 
     /**
-     * Invalidates current TGT for future use
-     */
-    public function logout()
-    {
-        $this->httpClient->delete($this->url . '/' . $this->tgt);
-    }
-
-    /**
-     * Get authorzation headers as array
+     * Check if TGT is cached and if cache is valid, will set $this->tgt to cached value if true
      *
-     * @return array
+     * @param TGTCacheInterface $tgtCache            
+     * @return bool
      */
-    public function getAuthHeadersAsArray()
+    protected function isCachedTGT(TGTCacheInterface $tgtCache = null)
     {
-        return [
-            'Authorization' => 'Boknett ' . $this->tgt,
-            'Date' => gmdate('D, d M Y H:i:s e')
-        ];
-    }
-
-    /**
-     *
-     * @return the $tgt
-     */
-    public function getTgt()
-    {
-        return $this->tgt;
-    }
-
-    /**
-     *
-     * @param number $tgtExpireMinutes            
-     */
-    public function setTgtExpireMinutes($tgtExpireMinutes)
-    {
-        $this->tgtExpireMinutes = $tgtExpireMinutes;
+        if (is_null($tgtCache) || empty($tgtCache->getTGT()) || $this->isTGTSoonExpired($tgtCache)) {
+            return false;
+        } else {
+            $this->tgt = $tgtCache->getTGT();
+            return true;
+        }
     }
 
     /**
@@ -106,23 +103,25 @@ class Login
      *
      * @param string $username            
      * @param string $password            
-     * @throws \Exception
+     * @param array $httpOptions            
+     * @throws BokbasenAuthException
      */
-    protected function auth($username, $password)
+    protected function auth($username, $password, array $httpOptions = [])
     {
-        $this->httpClient = new \GuzzleHttp\Client([
-            'allow_redirects' => false
-        ]);
+        $httpOptions = array_merge([
+            RequestOptions::ALLOW_REDIRECTS => false
+        ], $httpOptions);
+        $this->httpClient = new \GuzzleHttp\Client($httpOptions);
         
         $response = $this->httpClient->request('POST', $this->url, [
-            'form_params' => [
+            RequestOptions::FORM_PARAMS => [
                 'username' => $username,
                 'password' => $password
             ]
         ]);
         
         if ($response->getStatusCode() != 201) {
-            throw new \Exception('Ticket not created. HTTP: ' . $response->getStatusCode() . ' Body:' . $response->getBody());
+            throw new BokbasenAuthException('Ticket not created. HTTP: ' . $response->getStatusCode() . ' Body:' . $response->getBody());
         }
         $tgtHeaders = $response->getHeader(self::HEADER_TGT);
         $this->tgt = array_pop($tgtHeaders);
@@ -145,19 +144,42 @@ class Login
     }
 
     /**
-     * Check if TGT is cached and if cache is valid, will set $this->tgt to cached value if true
-     * 
-     * @param TGTCacheInterface $tgtCache            
-     * @return bool
+     *
+     * @return the $tgt
      */
-    protected function isCachedTGT(TGTCacheInterface $tgtCache = null)
+    public function getTgt()
     {
-        if (is_null($tgtCache) || empty($tgtCache->getTGT()) || $this->isTGTSoonExpired($tgtCache)) {
-            return false;
-        } else {
-            $this->tgt = $tgtCache->getTGT();            
-            return true;
-        }
+        return $this->tgt;
+    }
+
+    /**
+     *
+     * @param number $tgtExpireMinutes            
+     */
+    public function setTgtExpireMinutes($tgtExpireMinutes)
+    {
+        $this->tgtExpireMinutes = $tgtExpireMinutes;
+    }
+
+    /**
+     * Invalidates current TGT for future use
+     */
+    public function logout()
+    {
+        $this->httpClient->delete($this->url . '/' . $this->tgt);
+    }
+
+    /**
+     * Get authorzation headers as array
+     *
+     * @return array
+     */
+    public function getAuthHeadersAsArray()
+    {
+        return [
+            'Authorization' => self::BEARER_NAME . ' ' . $this->tgt,
+            'Date' => gmdate(self::HTTP_HEADER_DATE_FORMAT)
+        ];
     }
 
     /**
