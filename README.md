@@ -40,7 +40,7 @@ The basic package enable creation of a TGT that can be used for further login to
  use Bokbasen\Auth\TGTCache;
  try{
  	//Create a TGT cache instance, any class implementing the TGTCacheInterface
- 	$tgtCacheSession = TGTCache\Session('myNamespace');
+ 	$tgtCacheSession = new TGTCache\Session('myNamespace');
  	$auth = new Login('my_username', 'my_password', $tgtCacheSession);
 	//If the TGT is cached, the SDK will only call the Bokbasen login server when the token is about to expire
  } catch(\Exception $e){
