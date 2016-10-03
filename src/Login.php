@@ -67,18 +67,19 @@ class Login
 
     /**
      *
-     * @param string $url            
      * @param string $username            
      * @param string $password            
      * @param TGTCacheInterface $tgtCache            
+     * @param string $url            
+     * @param array $httpOptions            
      */
-    public function __construct($url, $username, $password, TGTCacheInterface $tgtCache = null)
+    public function __construct($username, $password, TGTCacheInterface $tgtCache = null, $url = self::URL_PROD, array $httpOptions = [])
     {
         $this->url = $url;
         $this->tgtCache = $tgtCache;
         
         if (! $this->isCachedTGT($tgtCache)) {
-            $this->auth($username, $password, $tgtCache);
+            $this->auth($username, $password, $tgtCache, $httpOptions);
         }
     }
 
