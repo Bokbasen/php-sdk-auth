@@ -34,15 +34,17 @@ The basic package enable creation of a TGT that can be used for further login to
  ``` 
  
 ## Use TGT cache
+
+You can cache the TGT using any [PSR-6](http://www.php-fig.org/psr/psr-6/) compatible package. Example below is using Symphony's file caching. 
+
  ```php
  <?php
  use Bokbasen\Auth\Login;
- use Bokbasen\Auth\TGTCache;
+ use Symfony\Component\Cache\Adapter\FilesystemAdapter;
  try{
- 	//Create a TGT cache instance, any class implementing the TGTCacheInterface
- 	$tgtCacheSession = new TGTCache\Session('myNamespace');
- 	$auth = new Login('my_username', 'my_password', $tgtCacheSession);
-	//If the TGT is cached, the SDK will only call the Bokbasen login server when the token is about to expire
+ 	$cache = new FilesystemAdapter();
+ 	$auth = new Login('my_username', 'my_password', $cache);
+	//If the TGT is cached, the SDK will only call the Bokbasen login server when the token is set to expire
  } catch(\Exception $e){
  	//error handling
  }
