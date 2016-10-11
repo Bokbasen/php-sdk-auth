@@ -28,7 +28,7 @@ use Bokbasen\Auth\Exceptions\BokbasenAuthException;
  */
 class Login
 {
-    use \Bokbasen\Auth\Http\HttpMethodsTrait;
+    use \Bokbasen\Http\HttpMethodsTrait;
 
     /**
      *

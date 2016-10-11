@@ -1,5 +1,5 @@
 <?php
-namespace Bokbasen\Auth\Http;
+namespace Bokbasen\Http;
 
 use Http\Discovery\HttpClientDiscovery;
 use Http\Discovery\MessageFactoryDiscovery;

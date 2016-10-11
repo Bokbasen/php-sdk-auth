@@ -6,7 +6,8 @@
     "homepage": "https://github.com/Bokbasen/php-sdk-auth",
     "autoload": {
         "psr-4" : {
-            "Bokbasen\\Auth\\" : "src"
+            "Bokbasen\\Auth\\": "src/Auth",
+            "Bokbasen\\Http\\": "src/Http"
         }
     },
     "autoload-dev": {
@@ -22,7 +23,7 @@
     ], 
      "require": {
         "php": ">=5.6",
-        "psr/cache": "~1",      
+        "psr/cache": "^1",      
         "php-http/client-implementation": "^1.0",
         "php-http/httplug": "^1.0",
         "php-http/discovery": "^1.0",
