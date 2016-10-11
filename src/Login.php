@@ -87,6 +87,45 @@ class Login
     }
 
     /**
+     *
+     * @return string
+     */
+    public function getTgt()
+    {
+        return $this->tgt;
+    }
+
+    /**
+     *
+     * @param number $tgtExpireMinutes            
+     */
+    public function setTgtExpireMinutes($tgtExpireMinutes)
+    {
+        $this->tgtExpireMinutes = $tgtExpireMinutes;
+    }
+
+    /**
+     * Invalidates current TGT for future use
+     */
+    public function logout()
+    {
+        $this->httpClient->delete($this->url . '/' . $this->tgt);
+    }
+
+    /**
+     * Get authorzation headers as array
+     *
+     * @return array
+     */
+    public function getAuthHeadersAsArray()
+    {
+        return [
+            'Authorization' => self::BEARER_NAME . ' ' . $this->tgt,
+            'Date' => gmdate(self::HTTP_HEADER_DATE_FORMAT)
+        ];
+    }
+
+    /**
      * Check if TGT is cached and if cache is valid, will set $this->tgt to cached value if true
      *
      * @return bool
@@ -134,54 +173,17 @@ class Login
         if ($response->getStatusCode() != 201) {
             throw new BokbasenAuthException('Ticket not created. HTTP: ' . $response->getStatusCode() . ' Body:' . $response->getBody());
         }
-        $tgtHeaders = $response->getHeader(self::HEADER_TGT);
-        $this->tgt = array_pop($tgtHeaders);
+        
+        $this->tgt = $response->getHeaderLine(self::HEADER_TGT);
         
         if (! is_null($this->tgtCache)) {
             $tgtCacheItem = $this->tgtCache->getItem(self::CACHE_ITEM_KEY);
             $tgtCacheItem->set($this->tgt);
             $tgtCacheItem->expiresAfter($this->tgtExpireMinutes * 60);
-            $this->tgtCache->save($tgtCacheItem);
+            if ($this->tgtCache->save($tgtCacheItem) === false) {
+                throw new BokbasenAuthException('Saving of cache failed.');
+            }
         }
-    }
-
-    /**
-     *
-     * @return string
-     */
-    public function getTgt()
-    {
-        return $this->tgt;
-    }
-
-    /**
-     *
-     * @param number $tgtExpireMinutes            
-     */
-    public function setTgtExpireMinutes($tgtExpireMinutes)
-    {
-        $this->tgtExpireMinutes = $tgtExpireMinutes;
-    }
-
-    /**
-     * Invalidates current TGT for future use
-     */
-    public function logout()
-    {
-        $this->httpClient->delete($this->url . '/' . $this->tgt);
-    }
-
-    /**
-     * Get authorzation headers as array
-     *
-     * @return array
-     */
-    public function getAuthHeadersAsArray()
-    {
-        return [
-            'Authorization' => self::BEARER_NAME . ' ' . $this->tgt,
-            'Date' => gmdate(self::HTTP_HEADER_DATE_FORMAT)
-        ];
     }
 
     /**
