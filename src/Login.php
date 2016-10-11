@@ -97,7 +97,7 @@ class Login
             return false;
         } else {
             $cachedItem = $this->tgtCache->getItem(self::CACHE_ITEM_KEY);
-            if (is_null($cachedItem) || ! $this->tgtCache->getItem(self::CACHE_ITEM_KEY)->isHit()) {
+            if (! $cachedItem->isHit()) {
                 return false;
             } else {
                 $this->tgt = $cachedItem->get();
