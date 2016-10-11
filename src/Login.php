@@ -1,7 +1,7 @@
 <?php
 namespace Bokbasen\Auth;
 
-use Bokbasen\Auth\TGTCache\TGTCacheInterface;
+use Psr\Cache\CacheItemPoolInterface;
 use GuzzleHttp\RequestOptions;
 use Bokbasen\Auth\Exceptions\BokbasenAuthException;
 
@@ -42,7 +42,7 @@ class Login
 
     /**
      *
-     * @var TGTCacheInterface
+     * @var \Psr\Cache\CacheItemPoolInterface
      */
     protected $tgtCache;
 
@@ -65,37 +65,44 @@ class Login
 
     const DEFAULT_TGT_EXPIRE_TIME_MINUTES = 115;
 
+    const CACHE_ITEM_KEY = 'bokbasen.tgt';
+
     /**
      *
      * @param string $username            
      * @param string $password            
-     * @param TGTCacheInterface $tgtCache            
+     * @param CacheItemPoolInterface $tgtCache            
      * @param string $url            
      * @param array $httpOptions            
      */
-    public function __construct($username, $password, TGTCacheInterface $tgtCache = null, $url = self::URL_PROD, array $httpOptions = [])
+    public function __construct($username, $password, CacheItemPoolInterface $tgtCache = null, $url = self::URL_PROD, array $httpOptions = [])
     {
         $this->url = $url;
         $this->tgtCache = $tgtCache;
+        $this->tgtExpireMinutes = self::DEFAULT_TGT_EXPIRE_TIME_MINUTES;
         
-        if (! $this->isCachedTGT($tgtCache)) {
-            $this->auth($username, $password, $tgtCache, $httpOptions);
+        if (! $this->isCachedTGT()) {
+            $this->auth($username, $password, $httpOptions);
         }
     }
 
     /**
      * Check if TGT is cached and if cache is valid, will set $this->tgt to cached value if true
      *
-     * @param TGTCacheInterface $tgtCache            
      * @return bool
      */
-    protected function isCachedTGT(TGTCacheInterface $tgtCache = null)
+    protected function isCachedTGT()
     {
-        if (is_null($tgtCache) || empty($tgtCache->getTGT()) || $this->isTGTSoonExpired($tgtCache)) {
+        if (is_null($this->tgtCache)) {
             return false;
         } else {
-            $this->tgt = $tgtCache->getTGT();
-            return true;
+            $cachedItem = $this->tgtCache->getItem(self::CACHE_ITEM_KEY);
+            if (is_null($cachedItem) || ! $this->tgtCache->getItem(self::CACHE_ITEM_KEY)->isHit()) {
+                return false;
+            } else {
+                $this->tgt = $cachedItem->get();
+                return ! empty($this->tgt);
+            }
         }
     }
 
@@ -106,12 +113,15 @@ class Login
      * @param string $password            
      * @param array $httpOptions            
      * @throws BokbasenAuthException
+     * @return void
      */
     protected function auth($username, $password, array $httpOptions = [])
     {
         $httpOptions = array_merge([
             RequestOptions::ALLOW_REDIRECTS => false
         ], $httpOptions);
+        
+        // @todo, consider replacing this with generic support for injecting an PSR-7 adapter
         $this->httpClient = new \GuzzleHttp\Client($httpOptions);
         
         $response = $this->httpClient->request('POST', $this->url, [
@@ -128,25 +138,16 @@ class Login
         $this->tgt = array_pop($tgtHeaders);
         
         if (! is_null($this->tgtCache)) {
-            $this->tgtCache->setTGT($this->tgt);
+            $tgtCacheItem = $this->tgtCache->getItem(self::CACHE_ITEM_KEY);
+            $tgtCacheItem->set($this->tgt);
+            $tgtCacheItem->expiresAfter($this->tgtExpireMinutes * 60);
+            $this->tgtCache->save($tgtCacheItem);
         }
     }
 
     /**
      *
-     * @param TGTCacheInterface $tgtCache            
-     * @return bool
-     */
-    public function isTGTSoonExpired(TGTCacheInterface $tgtCache = null)
-    {
-        $dateTime = time() - $this->tgtExpireMinutes * 60;
-        
-        return $dateTime > $tgtCache->getCreatedUnixTimestamp();
-    }
-
-    /**
-     *
-     * @return the $tgt
+     * @return string
      */
     public function getTgt()
     {
@@ -184,7 +185,7 @@ class Login
     }
 
     /**
-     * If no TGT cache is defined, then destruct will perform a HTTP DELETE call to clear the ticket
+     * If no TGT cache is defined, then destruct will perform a HTTP DELETE call to clear the TGT
      */
     public function __destruct()
     {
