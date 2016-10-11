@@ -3,8 +3,7 @@ namespace Bokbasen\Auth;
 
 use Psr\Cache\CacheItemPoolInterface;
 use Http\Client\HttpClient;
-use Http\Discovery\HttpClientDiscovery;
-use Http\Discovery\MessageFactoryDiscovery;
+
 use Bokbasen\Auth\Exceptions\BokbasenAuthException;
 
 /**
@@ -29,24 +28,13 @@ use Bokbasen\Auth\Exceptions\BokbasenAuthException;
  */
 class Login
 {
+    use \Bokbasen\Auth\Http\HttpMethodsTrait;
 
     /**
      *
      * @var string
      */
     protected $tgt;
-
-    /**
-     *
-     * @var \Http\Client\HttpClient
-     */
-    protected $httpClient;
-
-    /**
-     *
-     * @var \Http\Discovery\MessageFactory
-     */
-    protected $messageFactory;
 
     /**
      *
@@ -88,31 +76,13 @@ class Login
         $this->url = $url;
         $this->tgtCache = $tgtCache;
         
-        if (is_null($httpClient)) {
-            $this->httpClient = HttpClientDiscovery::find();
-        } else {
-            $this->httpClient = $httpClient;
-        }
-        
+        $this->setHttpClient($httpClient);
+                
         $this->tgtExpireMinutes = self::DEFAULT_TGT_EXPIRE_TIME_MINUTES;
         
         if (! $this->isCachedTGT()) {
             $this->auth($username, $password);
         }
-    }
-
-    /**
-     * Create a message factory
-     *
-     * @return \Http\Discovery\MessageFactory
-     */
-    protected function getMessageFactory()
-    {
-        if (is_null($this->messageFactory)) {
-            $this->messageFactory = MessageFactoryDiscovery::find();
-        }
-        
-        return $this->messageFactory;
     }
 
     /**
