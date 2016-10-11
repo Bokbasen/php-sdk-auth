@@ -25,6 +25,19 @@ class LoginTest extends \PHPUnit_Framework_TestCase
         $this->config = parse_ini_file(__DIR__ . '/config.ini');
     }
 
+    public function testHttpClientsLogin()
+    {
+        
+        // Using default autodetected client
+        $this->auth = new Login($this->config['username'], $this->config['password'], null, $this->config['url']);
+        $this->assertNotEmpty($this->auth->getTgt());
+        
+        $adapter = new \Http\Adapter\Guzzle6\Client();
+        
+        $this->auth = new Login($this->config['username'], $this->config['password'], null, $this->config['url'], $adapter);
+        $this->assertNotEmpty($this->auth->getTgt());
+    }
+
     public function testLogin()
     {
         $this->auth = new Login($this->config['username'], $this->config['password'], null, $this->config['url']);
@@ -33,15 +46,8 @@ class LoginTest extends \PHPUnit_Framework_TestCase
 
     public function testFailedLogin()
     {
-        $this->expectException(\GuzzleHttp\Exception\ClientException::class);
-        
-        try {
-            $auth = new Login('dsds', 'fsdfsdfo8s', null, $this->config['url']);
-            $this->assertNotEmpty($auth->getTgt());
-        } catch (\Exception $e) {
-            $this->assertEquals(400, $e->getCode());
-            throw $e;
-        }
+        $this->expectException(\Bokbasen\Auth\Exceptions\BokbasenAuthException::class);
+        $auth = new Login('dsds', 'fsdfsdfo8s', null, $this->config['url']);
     }
 
     public function testCache()

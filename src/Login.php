@@ -2,7 +2,9 @@
 namespace Bokbasen\Auth;
 
 use Psr\Cache\CacheItemPoolInterface;
-use GuzzleHttp\RequestOptions;
+use Http\Client\HttpClient;
+use Http\Discovery\HttpClientDiscovery;
+use Http\Discovery\MessageFactoryDiscovery;
 use Bokbasen\Auth\Exceptions\BokbasenAuthException;
 
 /**
@@ -36,9 +38,15 @@ class Login
 
     /**
      *
-     * @var \GuzzleHttp\Client
+     * @var \Http\Client\HttpClient
      */
     protected $httpClient;
+
+    /**
+     *
+     * @var \Http\Discovery\MessageFactory
+     */
+    protected $messageFactory;
 
     /**
      *
@@ -47,7 +55,7 @@ class Login
     protected $tgtCache;
 
     /**
-     * Number of minutes before a TGT should be refreshed
+     * Number of minutes a TGT should be cached
      *
      * @var int
      */
@@ -63,7 +71,7 @@ class Login
 
     const HTTP_HEADER_DATE_FORMAT = 'D, d M Y H:i:s e';
 
-    const DEFAULT_TGT_EXPIRE_TIME_MINUTES = 115;
+    const DEFAULT_TGT_EXPIRE_TIME_MINUTES = 110;
 
     const CACHE_ITEM_KEY = 'bokbasen.tgt';
 
@@ -73,17 +81,38 @@ class Login
      * @param string $password            
      * @param CacheItemPoolInterface $tgtCache            
      * @param string $url            
-     * @param array $httpOptions            
+     * @param HttpClient $httpClient            
      */
-    public function __construct($username, $password, CacheItemPoolInterface $tgtCache = null, $url = self::URL_PROD, array $httpOptions = [])
+    public function __construct($username, $password, CacheItemPoolInterface $tgtCache = null, $url = self::URL_PROD, HttpClient $httpClient = null)
     {
         $this->url = $url;
         $this->tgtCache = $tgtCache;
+        
+        if (is_null($httpClient)) {
+            $this->httpClient = HttpClientDiscovery::find();
+        } else {
+            $this->httpClient = $httpClient;
+        }
+        
         $this->tgtExpireMinutes = self::DEFAULT_TGT_EXPIRE_TIME_MINUTES;
         
         if (! $this->isCachedTGT()) {
-            $this->auth($username, $password, $httpOptions);
+            $this->auth($username, $password);
         }
+    }
+
+    /**
+     * Create a message factory
+     *
+     * @return \Http\Discovery\MessageFactory
+     */
+    protected function getMessageFactory()
+    {
+        if (is_null($this->messageFactory)) {
+            $this->messageFactory = MessageFactoryDiscovery::find();
+        }
+        
+        return $this->messageFactory;
     }
 
     /**
@@ -97,11 +126,11 @@ class Login
 
     /**
      *
-     * @param number $tgtExpireMinutes            
+     * @param int $tgtExpireMinutes            
      */
     public function setTgtExpireMinutes($tgtExpireMinutes)
     {
-        $this->tgtExpireMinutes = $tgtExpireMinutes;
+        $this->tgtExpireMinutes = (int) $tgtExpireMinutes;
     }
 
     /**
@@ -109,7 +138,7 @@ class Login
      */
     public function logout()
     {
-        $this->httpClient->delete($this->url . '/' . $this->tgt);
+        $this->getMessageFactory()->createRequest('DELETE', $this->url . '/' . $this->tgt);
     }
 
     /**
@@ -150,25 +179,17 @@ class Login
      *
      * @param string $username            
      * @param string $password            
-     * @param array $httpOptions            
      * @throws BokbasenAuthException
      * @return void
      */
-    protected function auth($username, $password, array $httpOptions = [])
+    protected function auth($username, $password)
     {
-        $httpOptions = array_merge([
-            RequestOptions::ALLOW_REDIRECTS => false
-        ], $httpOptions);
+        $request = $this->getMessageFactory()->createRequest('POST', $this->url, [], http_build_query([
+            'username' => $username,
+            'password' => $password
+        ]));
         
-        // @todo, consider replacing this with generic support for injecting an PSR-7 adapter
-        $this->httpClient = new \GuzzleHttp\Client($httpOptions);
-        
-        $response = $this->httpClient->request('POST', $this->url, [
-            RequestOptions::FORM_PARAMS => [
-                'username' => $username,
-                'password' => $password
-            ]
-        ]);
+        $response = $this->httpClient->sendRequest($request);
         
         if ($response->getStatusCode() != 201) {
             throw new BokbasenAuthException('Ticket not created. HTTP: ' . $response->getStatusCode() . ' Body:' . $response->getBody());
