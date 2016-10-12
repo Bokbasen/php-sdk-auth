@@ -3,7 +3,6 @@ namespace Bokbasen\Auth;
 
 use Psr\Cache\CacheItemPoolInterface;
 use Http\Client\HttpClient;
-
 use Bokbasen\Auth\Exceptions\BokbasenAuthException;
 
 /**
@@ -77,8 +76,6 @@ class Login
         $this->tgtCache = $tgtCache;
         
         $this->setHttpClient($httpClient);
-                
-        $this->tgtExpireMinutes = self::DEFAULT_TGT_EXPIRE_TIME_MINUTES;
         
         if (! $this->isCachedTGT()) {
             $this->auth($username, $password);
