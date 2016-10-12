@@ -22,4 +22,21 @@ class LoginTest extends \PHPUnit_Framework_TestCase
         $auth = new Login('test', 'test', null, null, $client);
         $this->assertEquals($auth->getTgt(), $tgt);
     }
+
+    public function testFailedLogin()
+    {
+        $this->expectException(\Bokbasen\Auth\Exceptions\BokbasenAuthException::class);
+        
+        $client = new Client();
+        
+        $response = $this->getMockBuilder('Psr\Http\Message\ResponseInterface')->getMock();
+        
+        $tgt = null;
+        $response->method('getHeaderLine')->willReturn($tgt);
+        $response->method('getStatusCode')->willReturn('400');
+        
+        $client->addResponse($response);
+        
+        $auth = new Login('test', 'test', null, null, $client);
+    }
 }
