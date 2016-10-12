@@ -1,5 +1,5 @@
 <?php
-namespace Bokbasen\Auth\Tests;
+namespace Bokbasen\Auth\Tests\Integration;
 
 use Bokbasen\Auth\Login;
 use Symfony\Component\Cache\Adapter\FilesystemAdapter;
@@ -27,7 +27,6 @@ class LoginTest extends \PHPUnit_Framework_TestCase
 
     public function testHttpClientsLogin()
     {
-        
         // Using default autodetected client
         $this->auth = new Login($this->config['username'], $this->config['password'], null, $this->config['url']);
         $this->assertNotEmpty($this->auth->getTgt());
