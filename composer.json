@@ -1,5 +1,5 @@
 {
-    "name": "Bokbasen/php-sdk-auth",
+    "name": "bokbasen/php-sdk-auth",
     "license": "MIT",
     "type": "library",
     "description": "PHP SDK for Bokbasen API authentication service",
