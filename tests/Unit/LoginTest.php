@@ -38,5 +38,6 @@ class LoginTest extends \PHPUnit_Framework_TestCase
         $client->addResponse($response);
         
         $auth = new Login('test', 'test', null, null, $client);
+        $auth->authenticate();
     }
 }

@@ -48,6 +48,24 @@ class Login
      */
     protected $tgtExpireMinutes = self::DEFAULT_TGT_EXPIRE_TIME_MINUTES;
 
+    /**
+     *
+     * @var string
+     */
+    protected $username;
+
+    /**
+     *
+     * @var string
+     */
+    protected $password;
+
+    /**
+     *
+     * @var bool
+     */
+    protected $reAuthAttempted;
+
     const URL_PROD = 'https://login.boknett.no/v1/tickets';
 
     const URL_TEST = 'https://login.boknett.webbe.no/v1/tickets';
@@ -76,10 +94,28 @@ class Login
         $this->tgtCache = $tgtCache;
         
         $this->setHttpClient($httpClient);
-        
-        if (! $this->isCachedTGT()) {
-            $this->auth($username, $password);
-        }
+        $this->username = $username;
+        $this->password = $password;
+        $this->reAuthAttempted = false;
+    }
+
+    /**
+     * Check if reauthetication is attempted, used to ensure that only one attempt is made for reauthetication
+     *
+     * @return boolean
+     */
+    public function isReAuthAttempted()
+    {
+        return $this->reAuthAttempted;
+    }
+
+    /**
+     * Rerun authentication (will force new TGT, regardless of cache)
+     */
+    public function reAuthenticate()
+    {
+        $this->reAuthAttempted = true;
+        $this->authenticate();
     }
 
     /**
@@ -88,6 +124,9 @@ class Login
      */
     public function getTgt()
     {
+        if (is_null($this->tgt)) {
+            $this->setTGT();
+        }
         return $this->tgt;
     }
 
@@ -105,7 +144,10 @@ class Login
      */
     public function logout()
     {
-        $this->getMessageFactory()->createRequest('DELETE', $this->url . '/' . $this->tgt);
+        if (! is_null($this->tgt)) {
+            $this->getMessageFactory()->createRequest('DELETE', $this->url . '/' . $this->tgt);
+            unset($this->tgt);
+        }
     }
 
     /**
@@ -115,10 +157,24 @@ class Login
      */
     public function getAuthHeadersAsArray()
     {
+        if (is_null($this->tgt)) {
+            $this->setTGT();
+        }
+        
         return [
             'Authorization' => self::BEARER_NAME . ' ' . $this->tgt,
             'Date' => gmdate(self::HTTP_HEADER_DATE_FORMAT)
         ];
+    }
+
+    /**
+     * Populate $this->tgt either frmo cache or execute call to auth server
+     */
+    protected function setTGT()
+    {
+        if (! $this->isCachedTGT()) {
+            $this->authenticate($this->username, $this->password);
+        }
     }
 
     /**
@@ -144,16 +200,14 @@ class Login
     /**
      * Authorize user and store TGT
      *
-     * @param string $username            
-     * @param string $password            
      * @throws BokbasenAuthException
      * @return void
      */
-    protected function auth($username, $password)
+    public function authenticate()
     {
         $request = $this->getMessageFactory()->createRequest('POST', $this->url, [], http_build_query([
-            'username' => $username,
-            'password' => $password
+            'username' => $this->username,
+            'password' => $this->password
         ]));
         
         $response = $this->httpClient->sendRequest($request);

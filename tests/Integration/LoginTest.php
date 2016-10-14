@@ -47,6 +47,7 @@ class LoginTest extends \PHPUnit_Framework_TestCase
     {
         $this->expectException(\Bokbasen\Auth\Exceptions\BokbasenAuthException::class);
         $auth = new Login('dsds', 'fsdfsdfo8s', null, $this->config['url']);
+        $auth->authenticate();
     }
 
     public function testCache()
