@@ -4,6 +4,7 @@ namespace Bokbasen\Http;
 use Http\Discovery\HttpClientDiscovery;
 use Http\Discovery\MessageFactoryDiscovery;
 use Http\Client\HttpClient;
+use Psr\Http\Message\ResponseInterface;
 use Bokbasen\Auth\Login;
 
 /**
@@ -87,5 +88,22 @@ trait HttpMethodsTrait{
     protected function makeHeadersArray(Login $auth, array $customHeaders = [])
     {
         return array_merge($auth->getAuthHeadersAsArray(), $customHeaders);
+    }
+
+    /**
+     * Check if the auth client should attempt reauthetication based on response.
+     * Will only run reauth once.
+     *
+     * @param ResponseInterface $response            
+     * @return boolean
+     */
+    protected function needReAuthentication(ResponseInterface $response)
+    {
+        if ($response->getStatusCode() == 401 && ! $this->auth->isReAuthAttempted()) {
+            $this->auth->reAuthenticate();
+            return true;
+        } else {
+            return false;
+        }
     }
 }
