@@ -3,6 +3,7 @@ namespace Bokbasen\Http;
 
 use Http\Discovery\HttpClientDiscovery;
 use Http\Discovery\MessageFactoryDiscovery;
+use Http\Discovery\StreamFactoryDiscovery;
 use Http\Client\HttpClient;
 use Psr\Http\Message\ResponseInterface;
 use Bokbasen\Auth\Login;
@@ -42,6 +43,12 @@ trait HttpMethodsTrait{
 
     /**
      *
+     * @var \Http\Discovery\MessageFactory
+     */
+    protected $streamFactory;
+
+    /**
+     *
      * @var \Bokbasen\Auth\Login
      */
     protected $auth;
@@ -78,6 +85,20 @@ trait HttpMethodsTrait{
         }
         
         return $this->messageFactory;
+    }
+
+    /**
+     * Create a stream factory
+     *
+     * @return \Http\Discovery\StreamFactory
+     */
+    protected function getStreamFactory()
+    {
+        if (is_null($this->streamFactory)) {
+            $this->streamFactory = StreamFactoryDiscovery::find();
+        }
+        
+        return $this->streamFactory;
     }
 
     /**
