@@ -242,7 +242,9 @@ class Login
         
         if ($response->getStatusCode() != 201) {
             $message = 'Ticket not created. HTTP: ' . $response->getStatusCode() . ' Body:' . $response->getBody();
-            $this->logger->error($message);
+            if (! is_null($this->logger)) {
+                $this->logger->error($message);
+            }
             throw new BokbasenAuthException($message);
         }
         
