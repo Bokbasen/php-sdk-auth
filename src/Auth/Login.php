@@ -2,6 +2,7 @@
 namespace Bokbasen\Auth;
 
 use Psr\Cache\CacheItemPoolInterface;
+use Psr\Log\LoggerInterface;
 use Http\Client\HttpClient;
 use Bokbasen\Auth\Exceptions\BokbasenAuthException;
 
@@ -66,6 +67,12 @@ class Login
      */
     protected $reAuthAttempted;
 
+    /**
+     *
+     * @var \Psr\Log\LoggerInterface
+     */
+    protected $logger;
+
     const URL_PROD = 'https://login.boknett.no/v1/tickets';
 
     const URL_TEST = 'https://login.boknett.webbe.no/v1/tickets';
@@ -84,18 +91,19 @@ class Login
      *
      * @param string $username            
      * @param string $password            
-     * @param CacheItemPoolInterface $tgtCache            
      * @param string $url            
+     * @param CacheItemPoolInterface $tgtCache            
+     * @param LoggerInterface $logger            
      * @param HttpClient $httpClient            
      */
-    public function __construct($username, $password, CacheItemPoolInterface $tgtCache = null, $url = self::URL_PROD, HttpClient $httpClient = null)
+    public function __construct($username, $password, $url = self::URL_PROD, CacheItemPoolInterface $tgtCache = null, LoggerInterface $logger = null, HttpClient $httpClient = null)
     {
-        $this->url = $url;
-        $this->tgtCache = $tgtCache;
-        
-        $this->setHttpClient($httpClient);
         $this->username = $username;
         $this->password = $password;
+        $this->url = $url;
+        $this->tgtCache = $tgtCache;
+        $this->logger = $logger;
+        $this->setHttpClient($httpClient);
         $this->reAuthAttempted = false;
     }
 
@@ -106,6 +114,9 @@ class Login
      */
     public function isReAuthAttempted()
     {
+        if (! is_null($this->logger)) {
+            $this->logger->info('isReAuthAttempted returns ' . $this->reAuthAttempted);
+        }
         return $this->reAuthAttempted;
     }
 
@@ -119,6 +130,7 @@ class Login
     }
 
     /**
+     * Get TGT (will attempt to create TGT if it does not exists)
      *
      * @return string
      */
@@ -146,6 +158,9 @@ class Login
     {
         if (! is_null($this->tgt)) {
             $this->getMessageFactory()->createRequest('DELETE', $this->url . '/' . $this->tgt);
+            if (! is_null($this->logger)) {
+                $this->logger->info('TGT deleted');
+            }
             unset($this->tgt);
         }
     }
@@ -159,6 +174,10 @@ class Login
     {
         if (is_null($this->tgt)) {
             $this->setTGT();
+        }
+        
+        if (! is_null($this->logger)) {
+            $this->logger->debug('Authorization header returned: ' . self::BEARER_NAME . ' ' . $this->tgt);
         }
         
         return [
@@ -185,13 +204,22 @@ class Login
     protected function isCachedTGT()
     {
         if (is_null($this->tgtCache)) {
+            if (! is_null($this->logger)) {
+                $this->logger->info('No cache interface available, create new ticket.');
+            }
             return false;
         } else {
             $cachedItem = $this->tgtCache->getItem(self::CACHE_ITEM_KEY);
             if (! $cachedItem->isHit()) {
+                if (! is_null($this->logger)) {
+                    $this->logger->info('Cache available, but not hit.');
+                }
                 return false;
             } else {
                 $this->tgt = $cachedItem->get();
+                if (! is_null($this->logger)) {
+                    $this->logger->info('Cache hit, returning: ' . $this->tgt);
+                }
                 return ! empty($this->tgt);
             }
         }
@@ -213,17 +241,28 @@ class Login
         $response = $this->httpClient->sendRequest($request);
         
         if ($response->getStatusCode() != 201) {
-            throw new BokbasenAuthException('Ticket not created. HTTP: ' . $response->getStatusCode() . ' Body:' . $response->getBody());
+            $message = 'Ticket not created. HTTP: ' . $response->getStatusCode() . ' Body:' . $response->getBody();
+            $this->logger->error($message);
+            throw new BokbasenAuthException($message);
         }
         
         $this->tgt = $response->getHeaderLine(self::HEADER_TGT);
-        
+        if (! is_null($this->logger)) {
+            $this->logger->info('New TGT created: ' . $this->tgt);
+        }
         if (! is_null($this->tgtCache)) {
             $tgtCacheItem = $this->tgtCache->getItem(self::CACHE_ITEM_KEY);
             $tgtCacheItem->set($this->tgt);
             $tgtCacheItem->expiresAfter($this->tgtExpireMinutes * 60);
             if ($this->tgtCache->save($tgtCacheItem) === false) {
-                throw new BokbasenAuthException('Saving of cache failed.');
+                $message = 'Saving of cache failed.';
+                if (! is_null($this->logger)) {
+                    $this->logger->error($message);
+                }
+                throw new BokbasenAuthException($message);
+            }
+            if (! is_null($this->logger)) {
+                $this->logger->info('New TGT added to cache');
             }
         }
     }

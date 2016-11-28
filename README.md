@@ -40,7 +40,7 @@ By adding a compatible HTTP adapter to your project the SDK will automatically d
  try{
  	//just an example, any client implementing \Http\Client\HttpClient\HttpClient will work
  	$client = new \Http\Adapter\Guzzle6\Client();
- 	$auth = new Login('my_username', 'my_password', Login::URL_PROD, $client);
+ 	$auth = new Login('my_username', 'my_password', Login::URL_PROD, null, null, $client);
  } catch(\Exception $e){
  	//error handling
  }
@@ -56,7 +56,7 @@ You can cache the TGT using any [PSR-6](http://www.php-fig.org/psr/psr-6/) compa
  use Symfony\Component\Cache\Adapter\FilesystemAdapter;
  try{
  	$cache = new FilesystemAdapter();
- 	$auth = new Login('my_username', 'my_password', $cache);
+ 	$auth = new Login('my_username', 'my_password', Login::URL_PROD, $cache);
 	//If the TGT is cached, the SDK will only call the Bokbasen login server when the token is set to expire
  } catch(\Exception $e){
  	//error handling
