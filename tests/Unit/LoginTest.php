@@ -19,8 +19,12 @@ class LoginTest extends \PHPUnit_Framework_TestCase
         
         $client->addResponse($response);
         
-        $auth = new Login('test', 'test', null, null, $client);
+        $auth = $this->createLoginObject($client);
         $this->assertEquals($auth->getTgt(), $tgt);
+    }
+    
+    protected function createLoginObject($client){
+        return new Login('test', 'test', null, null, null,$client);
     }
 
     public function testFailedLogin()
@@ -37,7 +41,7 @@ class LoginTest extends \PHPUnit_Framework_TestCase
         
         $client->addResponse($response);
         
-        $auth = new Login('test', 'test', null, null, $client);
+        $auth = $this->createLoginObject($client);
         $auth->authenticate();
     }
 }
