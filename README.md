@@ -48,7 +48,7 @@ By adding a compatible HTTP adapter to your project the SDK will automatically d
   
 ## Use TGT cache
 
-You can cache the TGT using any [PSR-6](http://www.php-fig.org/psr/psr-6/) compatible package. Example below is using Symphony's file caching. 
+You can cache the TGT using any [PSR-6](http://www.php-fig.org/psr/psr-6/) compatible package. Example below is using Symfony's file caching. 
 
  ```php
  <?php
