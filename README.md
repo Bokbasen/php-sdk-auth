@@ -17,7 +17,7 @@ By adding a compatible HTTP adapter to your project the SDK will automatically d
 
 ## Auto detected client and  TGT cache
 
-In production environments you should always use teh caching feature. Not doing this will potentially give you a signifincant performance impact on the response time from Bokbasen's APIs. You can cache the TGT using any [PSR-6](http://www.php-fig.org/psr/psr-6/) compatible package. Example below is using Symfony's file caching. 
+In production environments you should always use teh caching feature. Not doing this will potentially give you a significant performance impact on the response time from Bokbasen's APIs. You can cache the TGT using any [PSR-6](http://www.php-fig.org/psr/psr-6/) compatible package. Example below is using Symfony's file caching. 
 
  ```php
  <?php
@@ -30,7 +30,8 @@ In production environments you should always use teh caching feature. Not doing 
  } catch(\Exception $e){
  	//error handling
  }
- 
+?>
+ ```
  
 ## Use injected HTTP client
  
@@ -44,5 +45,5 @@ In production environments you should always use teh caching feature. Not doing 
  } catch(\Exception $e){
  	//error handling
  }
- ```
-  
+?>
+ ``` 
