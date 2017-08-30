@@ -15,22 +15,22 @@ By adding a compatible HTTP adapter to your project the SDK will automatically d
 
 ```$ composer require php-http/guzzle6-adapter```
 
-## Basic usage with auto detected http client
- 
+## Auto detected client and  TGT cache
+
+In production environments you should always use teh caching feature. Not doing this will potentially give you a signifincant performance impact on the response time from Bokbasen's APIs. You can cache the TGT using any [PSR-6](http://www.php-fig.org/psr/psr-6/) compatible package. Example below is using Symfony's file caching. 
+
  ```php
  <?php
  use Bokbasen\Auth\Login;
+ use Symfony\Component\Cache\Adapter\FilesystemAdapter;
  try{
- 	$auth = new Login('my_username', 'my_password');
- 	//To use TGT manually 
- 	$tgt = $auth->getTgt();
- 	//To get required auth HTTP headers as an array
- 	$headers = $auth->getAuthHeadersAsArray();
- 	//If you are using with a Bokbasen PHP SDK, then just pass the entire $auth object 
+ 	$cache = new FilesystemAdapter();
+ 	$auth = new Login('my_username', 'my_password', Login::URL_PROD, $cache);
+	//If the TGT is cached, the SDK will only call the Bokbasen login server when the token is set to expire
  } catch(\Exception $e){
  	//error handling
  }
- ```
+ 
  
 ## Use injected HTTP client
  
@@ -46,18 +46,3 @@ By adding a compatible HTTP adapter to your project the SDK will automatically d
  }
  ```
   
-## Use TGT cache
-
-You can cache the TGT using any [PSR-6](http://www.php-fig.org/psr/psr-6/) compatible package. Example below is using Symfony's file caching. 
-
- ```php
- <?php
- use Bokbasen\Auth\Login;
- use Symfony\Component\Cache\Adapter\FilesystemAdapter;
- try{
- 	$cache = new FilesystemAdapter();
- 	$auth = new Login('my_username', 'my_password', Login::URL_PROD, $cache);
-	//If the TGT is cached, the SDK will only call the Bokbasen login server when the token is set to expire
- } catch(\Exception $e){
- 	//error handling
- }
