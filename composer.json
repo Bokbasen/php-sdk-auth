@@ -22,7 +22,7 @@
     ], 
      "require": {
         "php": ">=5.6",
-        "psr/cache": "^1",
+        "psr/cache": "^1|^2|^3",
         "psr/log": "^1|^2|^3",
         "php-http/client-implementation": "^1.0",
         "php-http/httplug": "^1.0|^2.0",
